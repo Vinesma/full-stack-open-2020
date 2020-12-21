@@ -1,0 +1,14 @@
+title New Note
+
+Browser->Server: new_note
+note right of Server: Add 'new_note' to database
+Server->Browser: Redirect to /exampleapp/notes
+Browser->Server: Request for /exampleapp/notes
+Server->Browser: html
+Browser->Server: Request for main.css
+Server->Browser: main.css
+Browser->Server: Request for main.js
+Server->Browser: main.js
+main.js->Server: Request for data.json
+Server->main.js: data.json
+main.js->Browser: updated 'ul' element

@@ -1,0 +1,12 @@
+title SPA
+
+Browser->Server: Request html
+Server->Browser: html
+Browser->Server: Request for main.css
+Server->Browser: main.css
+Browser->Server: Request for spa.js
+Server->Browser: spa.js
+spa.js->Server: Request for data.json
+Server->spa.js: data.json
+note right of spa.js: process data and create 'ul' element
+spa.js->Browser: redrawNotes()

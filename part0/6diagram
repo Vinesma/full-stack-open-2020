@@ -1,0 +1,8 @@
+title SPA new note
+
+Browser->spa.js: new_note
+note over spa.js: append 'new_note'
+spa.js->Browser: redrawNotes()
+spa.js->Server: new_note.json
+note right of Server: add 'new_note' to database
+Server->Browser: Status: 201
