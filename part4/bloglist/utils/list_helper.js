@@ -17,16 +17,16 @@ const favoriteBlog = blogs => {
         return null;
     }
 
-    likes = blogs.map(blog => blog.likes);
-    maxValue = 0;
-    index = 0;
+    const likes = blogs.map(blog => blog.likes);
+    let maxValue = 0;
+    let index = 0;
 
     for (let i = 0; i < likes.length; i++) {
         if (likes[i] > maxValue) {
             maxValue = likes[i];
             index = i;
         }
-    };
+    }
 
     return {
         title: blogs[index].title,
