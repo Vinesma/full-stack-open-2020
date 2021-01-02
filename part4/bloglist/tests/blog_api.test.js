@@ -9,74 +9,128 @@ const Blog = require('../models/blog');
 beforeEach(async () => {
     await Blog.deleteMany({});
 
-    let blogObject = new Blog(helper.initialBlogs[0]);
-    await blogObject.save();
+    const blogObjects = helper.initialBlogs.map(blog => new Blog(blog));
+    const promises = blogObjects.map(blog => blog.save());
 
-    blogObject = new Blog(helper.initialBlogs[1]);
-    await blogObject.save();
+    await Promise.all(promises);
 });
 
-test('blogs are returned as json', async () => {
-    await api
-        .get('/api/blogs')
-        .expect(200)
-        .expect('Content-Type', /application\/json/);
+describe('fetching data from database', () => {
+    test('is returned as json', async () => {
+        await api
+            .get('/api/blogs')
+            .expect(200)
+            .expect('Content-Type', /application\/json/);
+    });
+
+    test('returns all data', async () => {
+        const response = await api.get('/api/blogs');
+
+        expect(response.body).toHaveLength(helper.initialBlogs.length);
+    });
+
+    test('returns a specific title of a blog', async () => {
+        const response = await api.get('/api/blogs');
+
+        const titles = response.body.map(blog => blog.title);
+        expect(titles).toContain('Interesting blog post');
+    });
 });
 
-test('all blogs are returned', async () => {
-    const response = await api.get('/api/blogs')
+describe('adding blogs', () => {
+    test('succeeds if valid', async () => {
+        const newBlog = {
+            title: 'Test title',
+            author: 'Tester',
+            url: 'http://testurl.com/post/1337',
+            likes: 452,
+        };
 
-    expect(response.body).toHaveLength(helper.initialBlogs.length);
+        await api
+            .post('/api/blogs')
+            .send(newBlog)
+            .expect(201)
+            .expect('Content-Type', /application\/json/);
+
+        const dbBlogs = await helper.blogsInDb();
+        expect(dbBlogs).toHaveLength(helper.initialBlogs.length + 1);
+
+        const titles = dbBlogs.map(blog => blog.title);
+        expect(titles).toContain('Test title');
+    });
+
+    test('fails if title and url are missing', async () => {
+        const invalidBlog = {
+            author: '',
+        };
+
+        await api
+            .post('/api/blogs')
+            .send(invalidBlog)
+            .expect(400);
+
+        const dbBlogs = await helper.blogsInDb();
+
+        expect(dbBlogs).toHaveLength(helper.initialBlogs.length);
+    });
 });
 
-test('a specific title of a blog is within the returned blogs', async () => {
-    const response = await api.get('/api/blogs');
+describe('identifier fields', () => {
+    test('are named "id" and not MongoDB\'s default "_id"', async () => {
+        const dbBlogs = await helper.blogsInDb();
 
-    const titles = response.body.map(blog => blog.title);
-    expect(titles).toContain('Interesting blog post');
+        dbBlogs.forEach(blog => {
+            expect(blog.id).toBeDefined();
+        });
+    });
+
+    test('"likes" being absent defaults to 0', async () => {
+        const blogWithNoLikes = new Blog({
+            title: 'Test title',
+            author: 'Testerman',
+            url: 'http://testurl.com/',
+        });
+
+        expect(blogWithNoLikes.likes).toBe(0);
+    });
 });
 
+describe('updating one item in the database', () => {
+    test('succeeds with a valid id', async () => {
+        const dbBlogsStart = await helper.blogsInDb();
+        const blogToUpdate = dbBlogsStart[0];
 
-test('a valid blog can be added', async () => {
-    const newBlog = {
-        title: 'Test title',
-        author: 'Tester',
-        url: 'http://testurl.com/post/1337',
-    }
+        const blog = {
+            title: blogToUpdate.title,
+            author: blogToUpdate.author,
+            url: blogToUpdate.url,
+            likes: blogToUpdate.likes + 100,
+        }
 
-    await api
-        .post('/api/blogs')
-        .send(newBlog)
-        .expect(201)
-        .expect('Content-Type', /application\/json/);
+        await api
+            .put(`/api/blogs/${blogToUpdate.id}`)
+            .send(blog)
+            .expect(200);
 
-    const response = await helper.blogsInDb();
-    expect(response).toHaveLength(helper.initialBlogs.length + 1);
+        const updatedBlog = await Blog.findById(blogToUpdate.id);
 
-    const titles = response.map(blog => blog.title);
-    expect(titles).toContain('Test title');
+        expect(updatedBlog.likes).toBe(blogToUpdate.likes + 100);
+    });
 });
 
-test('blog without title and url is not added', async () => {
-    const invalidBlog = {
-        author: '',
-    }
+describe('removing from the database', () => {
+    test('succeeds with a valid id', async () => {
+        const dbBlogsStart = await helper.blogsInDb();
+        const blogToDelete = dbBlogsStart[0];
 
-    await api
-        .post('/api/blogs')
-        .send(invalidBlog)
-        .expect(400)
+        await api
+            .delete(`/api/blogs/${blogToDelete.id}`)
+            .expect(204);
 
-    const response = await helper.blogsInDb();
+        const dbBlogsEnd = await helper.blogsInDb();
 
-    expect(response).toHaveLength(helper.initialBlogs.length);
-});
-
-test('identifier field is named "id" and not MongoDB\'s default "_id"', async () => {
-    const response = await helper.blogsInDb();
-
-    response.forEach(blog => {
-        expect(blog.id).toBeDefined();
+        expect(dbBlogsEnd).toHaveLength(helper.initialBlogs.length - 1);
+        expect(dbBlogsEnd).not.toContainEqual(blogToDelete);
     });
 });
 
