@@ -1,9 +1,10 @@
 const blogRouter = require('express').Router();
 const {request, response} = require('express');
 const Blog = require('../models/blog');
+const User = require('../models/user');
 
 blogRouter.get('/', async (request, response) => {
-    const blogs = await Blog.find({});
+    const blogs = await Blog.find({}).populate('user', { name: 1, username: 1 });
 
     response.json(
         blogs.map(blog => blog.toJSON())
@@ -11,14 +12,24 @@ blogRouter.get('/', async (request, response) => {
 });
 
 blogRouter.post('/', async (request, response) => {
-    const blog = new Blog(request.body);
+    const body = request.body;
+    const user = await User.findOne({});
+    const blog = new Blog({
+        title: body.title,
+        author: body.author,
+        url: body.url,
+        likes: body.likes,
+        user: user._id,
+    });
 
     try {
         const result = await blog.save();
+        user.blogs = user.blogs.concat(result._id);
+        await user.save();
         response.status(201).json(result.toJSON());
     } catch(error) {
         if (error.name === 'ValidationError') {
-            response.status(400).send({ error: 'Validation error!' });
+            response.status(400).send({ error: error.message });
         } else {
             response.json({ error: error.message });
         }

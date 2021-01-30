@@ -32,4 +32,4 @@ Node.js, Express, Deploying, MongoDB, Validation, ESLint.
 
 Testing, User administration, Token authentication
 
-...
+bloglist
