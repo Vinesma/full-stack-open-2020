@@ -38,7 +38,7 @@ describe('fetching data from database', () => {
 });
 
 describe('adding blogs', () => {
-    test('succeeds if valid', async () => {
+    test('succeeds if valid and token is not missing', async () => {
         const newBlog = {
             title: 'Test title',
             author: 'Tester',
@@ -46,8 +46,14 @@ describe('adding blogs', () => {
             likes: 452,
         };
 
+        loginResponse = await api
+            .post('/api/login')
+            .send({ username: "root", password: "ahoy" })
+            .expect('Content-Type', /application\/json/);
+        
         await api
             .post('/api/blogs')
+            .set('Authorization', `bearer ${loginResponse.body.token}`)
             .send(newBlog)
             .expect(201)
             .expect('Content-Type', /application\/json/);
@@ -64,14 +70,39 @@ describe('adding blogs', () => {
             author: '',
         };
 
+        loginResponse = await api
+            .post('/api/login')
+            .send({ username: "root", password: "ahoy" })
+            .expect('Content-Type', /application\/json/);
+
         await api
             .post('/api/blogs')
+            .set('Authorization', `bearer ${loginResponse.body.token}`)
             .send(invalidBlog)
             .expect(400);
 
         const dbBlogs = await helper.blogsInDb();
 
         expect(dbBlogs).toHaveLength(helper.initialBlogs.length);
+    });
+
+    test('fails if token is missing', async () => {
+        const dbBlogsStart = await helper.blogsInDb();
+
+        const newBlog = {
+            title: 'Test title',
+            author: 'Tester',
+            url: 'http://testurl.com/post/1337',
+            likes: 452,
+        };
+
+        await api
+            .post('/api/blogs')
+            .send(newBlog)
+            .expect(401)
+        
+        const dbBlogsEnd = await helper.blogsInDb();
+        expect(dbBlogsEnd).toHaveLength(dbBlogsStart.length);
     });
 });
 
@@ -119,12 +150,18 @@ describe('updating one item in the database', () => {
 });
 
 describe('removing from the database', () => {
-    test('succeeds with a valid id', async () => {
+    test('succeeds with a valid token and id', async () => {
         const dbBlogsStart = await helper.blogsInDb();
         const blogToDelete = dbBlogsStart[0];
 
+        loginResponse = await api
+            .post('/api/login')
+            .send({ username: "root", password: "ahoy" })
+            .expect('Content-Type', /application\/json/);
+
         await api
             .delete(`/api/blogs/${blogToDelete.id}`)
+            .set('Authorization', `bearer ${loginResponse.body.token}`)
             .expect(204);
 
         const dbBlogsEnd = await helper.blogsInDb();

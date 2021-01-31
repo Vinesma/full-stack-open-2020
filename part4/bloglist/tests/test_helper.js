@@ -3,14 +3,16 @@ const User = require('../models/user');
 
 const initialBlogs = [
     {
-        title:"Interesting blog post",
-        author :"DudeMcDudeFace",
-        url :"https://mycoolblog.com/post/32882",
+        title: "Interesting blog post",
+        author: "DudeMcDudeFace",
+        url: "https://mycoolblog.com/post/32882",
+        user: "60171ebc89c7cd94494251cc"
     },
     {
-        title :"How to do all the stuff",
-        author :"FaceMcDudeFace",
-        url :"https://myawesomeblog.com/post/38123",
+        title: "How to do all the stuff",
+        author: "FaceMcDudeFace",
+        url: "https://myawesomeblog.com/post/38123",
+        user: "60171ebc89c7cd94494251cc"
     },
 ];
 
@@ -19,6 +21,7 @@ const nonExistingId = async () => {
         title: 'willremovethissoon',
         author: 'redacted',
         url: '',
+        user: null,
     });
     await blog.save();
     await blog.remove();
